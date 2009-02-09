@@ -976,7 +976,7 @@ void PsiCon::checkAccountsEmpty()
 
 void PsiCon::doOpenUri(const QUrl &uri)
 {
-	qDebug("uri:  " + uri.toString());
+	qDebug("uri: %s", uri.toString());
 
 	// scheme
 	if (uri.scheme() != "xmpp") {
