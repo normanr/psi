@@ -1222,12 +1222,6 @@ void ContactProfile::doContextMenu(ContactViewItem *i, const QPoint &pos)
 			}
 		}
 		
-		// TODO: Add executeCommand() thing
-		if(!isPrivate) {
-			pm.insertItem(tr("E&xecute command"), rc2m, 25);
-			pm.setItemEnabled(25, !rl.isEmpty());
-		}
-
 		int base_hidden = base_sendto + at_sendto;
 		int at_hidden = 0;
 		QStringList hc;
@@ -1270,6 +1264,14 @@ void ContactProfile::doContextMenu(ContactViewItem *i, const QPoint &pos)
 			}*/
 		}
 		
+		d->cv->qa_execute->setIconSet(IconsetFactory::iconPixmap("psi/command"));
+		d->cv->qa_execute->addTo(&pm);
+
+		if(!isPrivate) {
+			pm.insertItem(tr("Execute command on"), rc2m, 25);
+			pm.setItemEnabled(25, !rl.isEmpty());
+		}
+
 		if(!isAgent) {
 			pm.insertSeparator();
 			pm.insertItem(IconsetFactory::icon("psi/upload").icon(), tr("Send &file"), 23);
@@ -1690,6 +1692,12 @@ void ContactProfile::scOpenWhiteboard(ContactViewItem *i)
 }
 #endif
 
+void ContactProfile::scExecuteCommand(ContactViewItem *i)
+{
+	if(i->type() == ContactViewItem::Contact)
+		actionExecuteCommand(i->u()->jid(), QString::null);
+}
+
 void ContactProfile::scAgentSetStatus(ContactViewItem *i, Status &s)
 {
 	if(i->type() != ContactViewItem::Contact)
@@ -2040,6 +2048,8 @@ ContactView::ContactView(QWidget *parent, const char *name)
 	qa_wb = new IconAction("", "psi/whiteboard", tr("Open a &whiteboard"), Qt::CTRL+Qt::Key_W, this);
 	connect(qa_wb, SIGNAL(activated()), SLOT(doOpenWhiteboard()));
 #endif
+	qa_execute = new IconAction("", "psi/command", tr("&Execute command"), 0, this);
+	connect(qa_execute, SIGNAL(activated()), SLOT(doExecuteCommand()));
 	qa_hist = new IconAction("", "psi/history", tr("&History"), 0, this);
 	connect(qa_hist, SIGNAL(activated()), SLOT(doHistory()));
 	qa_logon = new IconAction("", tr("&Log on"), 0, this);
@@ -2494,6 +2504,7 @@ void ContactView::setShortcuts()
 	qa_assignAvatar->setShortcuts(ShortcutManager::instance()->shortcuts("contactlist.assign-custom-avatar"));
 	qa_clearAvatar->setShortcuts(ShortcutManager::instance()->shortcuts("contactlist.clear-custom-avatar"));
 	qa_chat->setShortcuts(ShortcutManager::instance()->shortcuts("contactlist.chat"));
+	qa_execute->setShortcuts(ShortcutManager::instance()->shortcuts("common.execute"));
 	qa_hist->setShortcuts(ShortcutManager::instance()->shortcuts("common.history"));
 	qa_logon->setShortcuts(ShortcutManager::instance()->shortcuts("contactlist.login-transport"));
 	qa_recv->setShortcuts(ShortcutManager::instance()->shortcuts("contactlist.event"));
@@ -2588,6 +2599,14 @@ void ContactView::doOpenWhiteboard()
 	i->contactProfile()->scOpenWhiteboard(i);
 }
 #endif
+
+void ContactView::doExecuteCommand()
+{
+	ContactViewItem *i = (ContactViewItem *)selectedItem();
+	if(!i)
+		return;
+	i->contactProfile()->scExecuteCommand(i);
+}
 
 void ContactView::doHistory()
 {

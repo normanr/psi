@@ -178,6 +178,7 @@ private:
 #ifdef WHITEBOARDING
 	void scOpenWhiteboard(ContactViewItem *);
 #endif
+	void scExecuteCommand(ContactViewItem *);
 	void scAgentSetStatus(ContactViewItem *, Status &);
 	void scRemove(ContactViewItem *);
 	void doItemRenamed(ContactViewItem *, const QString &);
@@ -213,7 +214,7 @@ public:
 	void resetAnim();
 	QTimer *animTimer() const;
 
-	IconAction *qa_send, *qa_chat, *qa_ren, *qa_hist, *qa_logon, *qa_recv, *qa_rem, *qa_vcard;
+	IconAction *qa_send, *qa_chat, *qa_ren, *qa_execute, *qa_hist, *qa_logon, *qa_recv, *qa_rem, *qa_vcard;
 	IconAction *qa_assignAvatar, *qa_clearAvatar;
 #ifdef WHITEBOARDING
 	IconAction *qa_wb;
@@ -265,6 +266,7 @@ private slots:
 #ifdef WHITEBOARDING
 	void doOpenWhiteboard();
 #endif
+	void doExecuteCommand();
 	void doHistory();
 	void doVCard();
 	void doLogon();
