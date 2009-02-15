@@ -51,6 +51,7 @@
 #include "stretchwidget.h"
 #include "psioptions.h"
 #include "accountlabel.h"
+#include "shortcutmanager.h"
 
 //----------------------------------------------------------------------------
 
@@ -1009,6 +1010,9 @@ DiscoDlg::Private::Private(DiscoDlg *parent, PsiAccount *pa)
 	actAdd = new IconAction (tr("Add to roster"), "psi/addContact", tr("&Add to roster"), 0, dlg);
 	connect (actAdd, SIGNAL(activated()), sm, SLOT(map()));
 	sm->setMapping(actAdd, Features::FID_Add);
+
+	actAHCommand->setShortcuts(ShortcutManager::instance()->shortcuts("common.execute"));
+	actVCard->setShortcuts(ShortcutManager::instance()->shortcuts("common.user-info"));
 
 	// create toolbar
 	toolBar = new QToolBar(tr("Service Discovery toolbar"), dlg);
