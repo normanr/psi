@@ -358,6 +358,7 @@
 				</close>
 				<history type="QKeySequence" comment="Open the message history">Ctrl+H</history>
 				<user-info type="QKeySequence" comment="Show the user info of the contact">Ctrl+I</user-info>
+				<execute type="QKeySequence" comment="Execute an command on the contact">Ctrl+E</execute>
 			</common>
 			<global comment="Shortcuts available from outside of the application">
 				<event type="QKeySequence" comment="Receive incoming event"/>
