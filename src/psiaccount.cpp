@@ -2995,6 +2995,7 @@ ChatDlg *PsiAccount::ensureChatDlg(const Jid &j)
 		connect(c, SIGNAL(aInfo(const Jid &)), SLOT(actionInfo(const Jid &)));
 		connect(c, SIGNAL(aHistory(const Jid &)), SLOT(actionHistory(const Jid &)));
 		connect(c, SIGNAL(aFile(const Jid &)), SLOT(actionSendFile(const Jid &)));
+		connect(c, SIGNAL(aExecute(const Jid &, const QString &)), SLOT(actionExecuteCommand(const Jid &, const QString &)));
 		connect(c, SIGNAL(aVoice(const Jid &)), SLOT(actionVoice(const Jid &)));
 		connect(d->psi, SIGNAL(emitOptionsUpdate()), c, SLOT(optionsUpdate()));
 		connect(this, SIGNAL(updateContact(const Jid &, bool)), c, SLOT(updateContact(const Jid &, bool)));

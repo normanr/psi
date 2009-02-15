@@ -257,6 +257,7 @@ void PsiChatDlg::setShortcuts()
 	act_clear_->setShortcuts(ShortcutManager::instance()->shortcuts("chat.clear"));
 	act_info_->setShortcuts(ShortcutManager::instance()->shortcuts("common.user-info"));
 	act_history_->setShortcuts(ShortcutManager::instance()->shortcuts("common.history"));
+	act_execute_->setShortcuts(ShortcutManager::instance()->shortcuts("common.execute"));
 
 	act_mini_cmd_->setShortcuts(ShortcutManager::instance()->shortcuts("chat.quick-command"));
 
@@ -290,6 +291,9 @@ void PsiChatDlg::initToolButtons()
 	act_file_ = new IconAction(tr("Send file"), "psi/upload", tr("Send file"), 0, this);
 	connect(act_file_, SIGNAL(activated()), SLOT(doFile()));
 
+	act_execute_ = new IconAction(tr("Execute command"), "psi/command", tr("Execute command"), 0, this);
+	connect(act_execute_, SIGNAL(activated()), SLOT(doExecute()));
+
 	act_pgp_ = new IconAction(tr("Toggle encryption"), "psi/cryptoNo", tr("Toggle encryption"), 0, this, 0, true);
 	ui_.tb_pgp->setDefaultAction(act_pgp_);
 
@@ -311,6 +315,7 @@ void PsiChatDlg::initToolBar()
 	ui_.toolbar->addWidget(new StretchWidget(ui_.toolbar));
 	ui_.toolbar->addAction(act_icon_);
 	ui_.toolbar->addAction(act_file_);
+	ui_.toolbar->addAction(act_execute_);
 	if (PsiOptions::instance()->getOption("options.pgp.enable").toBool()) {
 		ui_.toolbar->addAction(act_pgp_);
 	}
@@ -335,6 +340,12 @@ void PsiChatDlg::capsChanged()
 	if (resource.isEmpty() && ul && !ul->userResourceList().isEmpty()) {
 		resource = (*(ul->userResourceList().priority())).name();
 	}
+	act_execute_->setVisible(
+		(ul && !ul->isAvailable()) || 
+		(ul && ul->isAvailable() && 
+			(!account()->capsManager()->isEnabled() ||
+			!account()->capsManager()->capsEnabled(jid().withResource(resource)) || 
+			account()->capsManager()->features(jid().withResource(resource)).canCommand())));
 	act_voice_->setEnabled(!account()->capsManager()->isEnabled() || (ul && ul->isAvailable() && account()->capsManager()->features(jid().withResource(resource)).canVoice()));
 }
 
@@ -469,6 +480,7 @@ void PsiChatDlg::buildMenu()
 
 	pm_settings_->addAction(act_icon_);
 	pm_settings_->addAction(act_file_);
+	pm_settings_->addAction(act_execute_);
 	if (account()->voiceCaller())
 		act_voice_->addTo(pm_settings_);
 	pm_settings_->addAction(act_pgp_);

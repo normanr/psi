@@ -82,6 +82,7 @@ signals:
 	void messagesRead(const Jid &);
 	void aSend(const Message &);
 	void aFile(const Jid &);
+	void aExecute(const Jid &, const QString &);
 
 	/**
 	 * Signals if user (re)started/stopped composing
@@ -120,6 +121,7 @@ protected slots:
 	virtual void doSend();
 	void doVoice();
 	void doFile();
+	void doExecute();
 
 private slots:
 	void setKeepOpenFalse();

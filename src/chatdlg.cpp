@@ -564,6 +564,11 @@ void ChatDlg::doFile()
 	aFile(jid());
 }
 
+void ChatDlg::doExecute()
+{
+	aExecute(jid(), QString::null);
+}
+
 void ChatDlg::doClear()
 {
 	chatView()->clear();
