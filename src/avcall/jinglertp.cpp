@@ -565,7 +565,7 @@ public:
 		to = _to;
 		iq = createIQ(doc(), "set", to.full(), id());
 		QDomElement query = doc()->createElement("jingle");
-		query.setAttribute("xmlns", "urn:xmpp:jingle:0");
+		query.setAttribute("xmlns", "urn:xmpp:jingle:1");
 		query.setAttribute("action", "session-initiate");
 		query.setAttribute("initiator", client()->jid().full());
 		query.setAttribute("sid", sid);
@@ -587,7 +587,7 @@ public:
 			content.appendChild(description);
 
 			QDomElement transport = doc()->createElement("transport");
-			transport.setAttribute("xmlns", "urn:xmpp:jingle:transports:ice-udp:0");
+			transport.setAttribute("xmlns", "urn:xmpp:jingle:transports:ice-udp:1");
 			transport.setAttribute("ufrag", c.trans.user);
 			transport.setAttribute("pwd", c.trans.pass);
 			content.appendChild(transport);
@@ -630,7 +630,7 @@ public:
 		to = _to;
 		iq = createIQ(doc(), "set", to.full(), id());
 		QDomElement query = doc()->createElement("jingle");
-		query.setAttribute("xmlns", "urn:xmpp:jingle:0");
+		query.setAttribute("xmlns", "urn:xmpp:jingle:1");
 		query.setAttribute("action", "transport-info");
 		query.setAttribute("initiator", initiator.full());
 		query.setAttribute("sid", sid);
@@ -641,7 +641,7 @@ public:
 			content.setAttribute("name", c.name);
 
 			QDomElement transport = doc()->createElement("transport");
-			transport.setAttribute("xmlns", "urn:xmpp:jingle:transports:ice-udp:0");
+			transport.setAttribute("xmlns", "urn:xmpp:jingle:transports:ice-udp:1");
 			transport.setAttribute("ufrag", c.trans.user);
 			transport.setAttribute("pwd", c.trans.pass);
 
@@ -699,7 +699,7 @@ public:
 		to = _to;
 		iq = createIQ(doc(), "set", to.full(), id());
 		QDomElement query = doc()->createElement("jingle");
-		query.setAttribute("xmlns", "urn:xmpp:jingle:0");
+		query.setAttribute("xmlns", "urn:xmpp:jingle:1");
 		query.setAttribute("action", "session-accept");
 		query.setAttribute("initiator", initiator.full());
 		query.setAttribute("sid", sid);
@@ -721,7 +721,7 @@ public:
 			content.appendChild(description);
 
 			QDomElement transport = doc()->createElement("transport");
-			transport.setAttribute("xmlns", "urn:xmpp:jingle:transports:ice-udp:0");
+			transport.setAttribute("xmlns", "urn:xmpp:jingle:transports:ice-udp:1");
 			transport.setAttribute("ufrag", c.trans.user);
 			transport.setAttribute("pwd", c.trans.pass);
 
@@ -760,7 +760,7 @@ public:
 		to = _to;
 		iq = createIQ(doc(), "set", to.full(), id());
 		QDomElement query = doc()->createElement("jingle");
-		query.setAttribute("xmlns", "urn:xmpp:jingle:0");
+		query.setAttribute("xmlns", "urn:xmpp:jingle:1");
 		query.setAttribute("action", "session-terminate");
 		query.setAttribute("initiator", initiator.full());
 		query.setAttribute("sid", sid);
@@ -844,7 +844,7 @@ public:
 				continue;
 
 			QDomElement e = n.toElement();
-			if(e.tagName() == "jingle" && e.attribute("xmlns") == "urn:xmpp:jingle:0")
+			if(e.tagName() == "jingle" && e.attribute("xmlns") == "urn:xmpp:jingle:1")
 			{
 				je = e;
 				break;
@@ -911,7 +911,7 @@ public:
 							c.desc.info += pi;
 					}
 				}
-				else if(e.tagName() == "transport" && e.attribute("xmlns") == "urn:xmpp:jingle:transports:ice-udp:0")
+				else if(e.tagName() == "transport" && e.attribute("xmlns") == "urn:xmpp:jingle:transports:ice-udp:1")
 				{
 					c.trans.user = e.attribute("ufrag");
 					c.trans.pass = e.attribute("pwd");
@@ -1011,6 +1011,7 @@ public:
 	QList<Ice176::Candidate> remoteCandidates;
 	bool transmitAudio, transmitVideo, transmitting;
 	bool receiveAudio, receiveVideo;
+	QList<RtpContent> initTrans;
 
 	class Channel
 	{
@@ -1076,6 +1077,9 @@ public:
 	void prov_accept()
 	{
 		prov_accepted = true;
+
+		if(!initTrans.isEmpty())
+			getTransportInfo(initTrans);
 
 		if(!localCandidates.isEmpty())
 		{
@@ -1516,6 +1520,14 @@ JingleRtpSession::JingleRtpSession() :
 	d = new JingleRtpSessionPrivate(this);
 }
 
+JingleRtpSession::JingleRtpSession(const JingleRtpSession &from) :
+	QObject(0)
+{
+	// TODO
+	fprintf(stderr, "JingleRtpSession copy not supported\n");
+	abort();
+}
+
 JingleRtpSession::~JingleRtpSession()
 {
 	if(d->incoming)
@@ -1591,6 +1603,30 @@ static QString findPlugin(const QString &relpath, const QString &basename)
 #endif
 */
 
+static bool g_loaded = false;
+
+static void ensureLoaded()
+{
+	if(!g_loaded)
+	{
+#ifndef GSTPROVIDER_STATIC
+		//QString pluginFile = findPlugin(".", "gstprovider");
+		QString pluginFile = qgetenv("PSI_MEDIA_PLUGIN");
+# ifdef GSTBUNDLE_PATH
+		PsiMedia::PluginResult r = PsiMedia::loadPlugin(pluginFile, GSTBUNDLE_PATH);
+# else
+		PsiMedia::PluginResult r = PsiMedia::loadPlugin(pluginFile, QString());
+# endif
+		if(r == PsiMedia::PluginSuccess)
+			g_loaded = true;
+#else
+		g_loaded = true;
+#endif
+		if(g_loaded)
+			ensureConfig();
+	}
+}
+
 JingleRtpManagerPrivate::JingleRtpManagerPrivate(PsiAccount *_pa, JingleRtpManager *_q) :
 	QObject(_q),
 	q(_q),
@@ -1599,38 +1635,11 @@ JingleRtpManagerPrivate::JingleRtpManagerPrivate(PsiAccount *_pa, JingleRtpManag
 	sess_in(0),
 	task(0)
 {
-#ifndef GSTPROVIDER_STATIC
-	//QString pluginFile = findPlugin(".", "gstprovider");
-	QString pluginFile = qgetenv("PSI_MEDIA_PLUGIN");
-# ifdef GSTBUNDLE_PATH
-	PsiMedia::loadPlugin(pluginFile, GSTBUNDLE_PATH);
-# else
-	PsiMedia::loadPlugin(pluginFile, QString());
-# endif
-#endif
-
-	if(PsiMedia::isSupported())
-	{
-	/*{
-		QMessageBox::critical(0, tr("PsiMedia Test"),
-			tr(
-			"Error: Could not load PsiMedia subsystem."
-			));
-		exit(1);
-	}*/
-
-		printf("psimedia supported\n");
-		ensureConfig();
-
-	//config = getDefaultConfiguration();
-
-		push_task = new JT_PushJingleRtp(pa->client()->rootTask());
-
-		connect(push_task, SIGNAL(incomingInitiate(const RtpPush &)), SLOT(push_task_incomingInitiate(const RtpPush &)));
-		connect(push_task, SIGNAL(incomingTransportInfo(const RtpPush &)), SLOT(push_task_incomingTransportInfo(const RtpPush &)));
-		connect(push_task, SIGNAL(incomingAccept(const RtpPush &)), SLOT(push_task_incomingAccept(const RtpPush &)));
-		connect(push_task, SIGNAL(incomingTerminate(const RtpPush &)), SLOT(push_task_incomingTerminate(const RtpPush &)));
-	}
+	push_task = new JT_PushJingleRtp(pa->client()->rootTask());
+	connect(push_task, SIGNAL(incomingInitiate(const RtpPush &)), SLOT(push_task_incomingInitiate(const RtpPush &)));
+	connect(push_task, SIGNAL(incomingTransportInfo(const RtpPush &)), SLOT(push_task_incomingTransportInfo(const RtpPush &)));
+	connect(push_task, SIGNAL(incomingAccept(const RtpPush &)), SLOT(push_task_incomingAccept(const RtpPush &)));
+	connect(push_task, SIGNAL(incomingTerminate(const RtpPush &)), SLOT(push_task_incomingTerminate(const RtpPush &)));
 }
 
 JingleRtpManagerPrivate::~JingleRtpManagerPrivate()
@@ -1700,6 +1709,7 @@ void JingleRtpManagerPrivate::push_task_incomingInitiate(const RtpPush &push)
 	sess_in->d->init_jid = push.from;
 	sess_in->d->sid = push.sid;
 	sess_in->d->contentList = push.contentList;
+	sess_in->d->initTrans = push.contentList;
 	sess_in->d->iq_id = push.iq_id;
 	emit q->incomingReady();
 }
@@ -1798,6 +1808,12 @@ void JingleRtpManager::config()
 	ConfigDlg w(*g_config, 0);
 	w.exec();
 	*g_config = w.config;
+}
+
+bool JingleRtpManager::isSupported()
+{
+	ensureLoaded();
+	return PsiMedia::isSupported();
 }
 
 void JingleRtpManager::setSelfAddress(const QHostAddress &addr)

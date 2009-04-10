@@ -90,6 +90,8 @@
 #include "desktoputil.h"
 #include "tabmanager.h"
 #include "capsmanager.h"
+#include "avcall/jinglertp.h"
+#include "avcall/calldlg.h"
 
 
 #include "AutoUpdater/AutoUpdater.h"
@@ -333,7 +335,7 @@ bool PsiCon::init()
 	// to options.xml only.
 	QString backupfile = optionsFile() + "-preOptionsMigration";
 	if (QFile::exists(pathToProfileConfig(activeProfile))
-		&& QFile::exists(optionsFile())
+		&& PsiOptions::exists(optionsFile())
 		&& !QFile::exists(backupfile)) {
 		QFile::copy(optionsFile(), backupfile);
 	}
@@ -374,8 +376,8 @@ bool PsiCon::init()
 	FancyLabel::setSmallFontSize( common_smallFontSize );
 	
 	
-	if (!QFile::exists(optionsFile()) && !QFile::exists(pathToProfileConfig(activeProfile))) {
-		if (!options->load(":/options/newprofile.xml")) {
+	if (!PsiOptions::exists(optionsFile())) {
+		if (!options->newProfile()) {
 			qWarning("ERROR: Failed to new profile default options");
 		}
 	}
@@ -1282,6 +1284,22 @@ void PsiCon::processEvent(PsiEvent *e, ActivationType activationType)
 		e->account()->cpUpdate(*u);
 		if(ft) {
 			FileRequestDlg *w = new FileRequestDlg(fe->timeStamp(), ft, e->account());
+			bringToFront(w);
+		}
+		return;
+	}
+
+	if(e->type() == PsiEvent::AvCall) {
+		AvCallEvent *ae = (AvCallEvent *)e;
+		JingleRtpSession *sess = ae->takeJingleRtpSession();
+		e->account()->eventQueue()->dequeue(e);
+		e->account()->queueChanged();
+		e->account()->cpUpdate(*u);
+		if(sess) {
+			//FileRequestDlg *w = new FileRequestDlg(fe->timeStamp(), ft, e->account());
+			CallDlg *w = new CallDlg(e->account(), 0);
+			w->setAttribute(Qt::WA_DeleteOnClose);
+			w->setIncoming(sess);
 			bringToFront(w);
 		}
 		return;
